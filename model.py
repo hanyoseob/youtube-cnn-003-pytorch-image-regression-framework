@@ -6,8 +6,10 @@ import torch.nn as nn
 
 ## 네트워크 구축하기
 class UNet(nn.Module):
-    def __init__(self):
+    def __init__(self, learning_type="plain"):
         super(UNet, self).__init__()
+
+        self.learning_type = learning_type
 
         def CBR2d(in_channels, out_channels, kernel_size=3, stride=1, padding=1, bias=True):
             layers = []
@@ -114,7 +116,10 @@ class UNet(nn.Module):
         dec1_2 = self.dec1_2(cat1)
         dec1_1 = self.dec1_1(dec1_2)
 
-        x = self.fc(dec1_1)
+        if self.learning_type == "plain":
+            x = self.fc(dec1_1)
+        elif self.learning_type == "residual":
+            x = x + self.fc(dec1_1)
 
         return x
 

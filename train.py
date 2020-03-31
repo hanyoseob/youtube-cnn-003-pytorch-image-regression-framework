@@ -164,9 +164,12 @@ if mode == 'train':
                   (epoch, num_epoch, batch, num_batch_train, np.mean(loss_mse)))
 
             # Tensorboard 저장하기
-            label = fn_tonumpy(label)
+            label = fn_tonumpy(fn_denorm(label, mean=0.5, std=0.5))
             input = fn_tonumpy(fn_denorm(input, mean=0.5, std=0.5))
             output = fn_tonumpy(fn_denorm(output, mean=0.5, std=0.5))
+
+            input = np.clip(input, a_min=0, a_max=1)
+            output = np.clip(output, a_min=0, a_max=1)
 
             writer_train.add_image('label', label, num_batch_train * (epoch - 1) + batch, dataformats='NHWC')
             writer_train.add_image('input', input, num_batch_train * (epoch - 1) + batch, dataformats='NHWC')
@@ -194,9 +197,12 @@ if mode == 'train':
                       (epoch, num_epoch, batch, num_batch_val, np.mean(loss_mse)))
 
                 # Tensorboard 저장하기
-                label = fn_tonumpy(label)
+                label = fn_tonumpy(fn_denorm(label, mean=0.5, std=0.5))
                 input = fn_tonumpy(fn_denorm(input, mean=0.5, std=0.5))
                 output = fn_tonumpy(fn_denorm(output, mean=0.5, std=0.5))
+
+                input = np.clip(input, a_min=0, a_max=1)
+                output = np.clip(output, a_min=0, a_max=1)
 
                 writer_val.add_image('label', label, num_batch_val * (epoch - 1) + batch, dataformats='NHWC')
                 writer_val.add_image('input', input, num_batch_val * (epoch - 1) + batch, dataformats='NHWC')
@@ -234,7 +240,7 @@ else:
                   (batch, num_batch_test, np.mean(loss_mse)))
 
             # Tensorboard 저장하기
-            label = fn_tonumpy(label)
+            label = fn_tonumpy(fn_denorm(label, mean=0.5, std=0.5))
             input = fn_tonumpy(fn_denorm(input, mean=0.5, std=0.5))
             output = fn_tonumpy(fn_denorm(output, mean=0.5, std=0.5))
 
