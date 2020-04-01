@@ -26,18 +26,18 @@ parser.add_argument("--batch_size", default=4, type=int, dest="batch_size")
 parser.add_argument("--num_epoch", default=100, type=int, dest="num_epoch")
 
 parser.add_argument("--data_dir", default="./datasets/BSR/BSDS500/data/images", type=str, dest="data_dir")
-parser.add_argument("--ckpt_dir", default="./checkpoint", type=str, dest="ckpt_dir")
-parser.add_argument("--log_dir", default="./log", type=str, dest="log_dir")
-parser.add_argument("--result_dir", default="./result", type=str, dest="result_dir")
+parser.add_argument("--ckpt_dir", default="./checkpoint/inpainting/plain", type=str, dest="ckpt_dir")
+parser.add_argument("--log_dir", default="./log/inpainting/plain", type=str, dest="log_dir")
+parser.add_argument("--result_dir", default="./result/inpainting/plain", type=str, dest="result_dir")
 
-parser.add_argument("--mode", default="train", type=str, dest="mode")
+parser.add_argument("--mode", default="test", type=str, dest="mode")
 parser.add_argument("--train_continue", default="off", type=str, dest="train_continue")
 
 parser.add_argument("--task", default="inpainting", choices=["inpainting", "denoising", "super_resolution"], type=str, dest="task")
-parser.add_argument('--opts', '--list', nargs='+', default=['uniform', 4, 4], dest='opts')
+parser.add_argument('--opts', '--list', nargs='+', default=['random', 0.5], dest='opts')
 
 parser.add_argument("--network", default="unet", choices=["unet", "hourglass"], type=str, dest="network")
-parser.add_argument("--learning_type", default="plain", type=str, dest="learning_type")
+parser.add_argument("--learning_type", default="plain", choices=["plain", "residual"], type=str, dest="learning_type")
 
 args = parser.parse_args()
 
@@ -73,9 +73,9 @@ print("result dir: %s" % result_dir)
 print("task: %s" % task)
 print("opts: %s" % opts)
 
+print("network: %s" % network)
 print("learning type: %s" % learning_type)
 
-print("network: %s" % network)
 print("mode: %s" % mode)
 print("device: %s" % device)
 
@@ -100,10 +100,10 @@ if mode == 'train':
     transform_val = transforms.Compose([RandomCrop(shape=(320, 480)), Normalization(mean=0.5, std=0.5), RandomFlip(), ToTensor()])
 
     dataset_train = Dataset(data_dir=os.path.join(data_dir, 'train'), transform=transform_train, task=task, opts=opts)
-    loader_train = DataLoader(dataset_train, batch_size=batch_size, shuffle=True, num_workers=8)
+    loader_train = DataLoader(dataset_train, batch_size=batch_size, shuffle=True, num_workers=0)
 
     dataset_val = Dataset(data_dir=os.path.join(data_dir, 'val'), transform=transform_val, task=task, opts=opts)
-    loader_val = DataLoader(dataset_val, batch_size=batch_size, shuffle=False, num_workers=8)
+    loader_val = DataLoader(dataset_val, batch_size=batch_size, shuffle=False, num_workers=0)
 
     # 그밖에 부수적인 variables 설정하기
     num_data_train = len(dataset_train)
@@ -115,7 +115,7 @@ else:
     transform_test = transforms.Compose([RandomCrop(shape=(320, 480)), Normalization(mean=0.5, std=0.5), ToTensor()])
 
     dataset_test = Dataset(data_dir=os.path.join(data_dir, 'test'), transform=transform_test, task=task, opts=opts)
-    loader_test = DataLoader(dataset_test, batch_size=batch_size, shuffle=False, num_workers=8)
+    loader_test = DataLoader(dataset_test, batch_size=batch_size, shuffle=False, num_workers=0)
 
     # 그밖에 부수적인 variables 설정하기
     num_data_test = len(dataset_test)
@@ -277,13 +277,21 @@ else:
             for j in range(label.shape[0]):
                 id = num_batch_test * (batch - 1) + j
 
-                plt.imsave(os.path.join(result_dir_test, 'png', 'label_%04d.png' % id), label[j].squeeze(), cmap=cmap)
-                plt.imsave(os.path.join(result_dir_test, 'png', 'input_%04d.png' % id), input[j].squeeze(), cmap=cmap)
-                plt.imsave(os.path.join(result_dir_test, 'png', 'output_%04d.png' % id), output[j].squeeze(), cmap=cmap)
+                label_ = label[j]
+                input_ = input[j]
+                output_ = output[j]
 
-                np.save(os.path.join(result_dir_test, 'numpy', 'label_%04d.npy' % id), label[j].squeeze())
-                np.save(os.path.join(result_dir_test, 'numpy', 'input_%04d.npy' % id), input[j].squeeze())
-                np.save(os.path.join(result_dir_test, 'numpy', 'output_%04d.npy' % id), output[j].squeeze())
+                np.save(os.path.join(result_dir_test, 'numpy', '%04d_label.npy' % id), label_)
+                np.save(os.path.join(result_dir_test, 'numpy', '%04d_input.npy' % id), input_)
+                np.save(os.path.join(result_dir_test, 'numpy', '%04d_output.npy' % id), output_)
+
+                label_ = np.clip(label_, a_min=0, a_max=1)
+                input_ = np.clip(input_, a_min=0, a_max=1)
+                output_ = np.clip(output_, a_min=0, a_max=1)
+
+                plt.imsave(os.path.join(result_dir_test, 'png', '%04d_label.png' % id), label_, cmap=cmap)
+                plt.imsave(os.path.join(result_dir_test, 'png', '%04d_input.png' % id), input_, cmap=cmap)
+                plt.imsave(os.path.join(result_dir_test, 'png', '%04d_output.png' % id), output_, cmap=cmap)
 
     print("AVERAGE TEST: BATCH %04d / %04d | LOSS %.4f" %
           (batch, num_batch_test, np.mean(loss_mse)))
