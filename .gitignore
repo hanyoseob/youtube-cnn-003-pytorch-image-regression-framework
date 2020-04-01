@@ -3,3 +3,5 @@
 /log/
 /result/
 /.idea/
+/.git/
+/__pycache__/
