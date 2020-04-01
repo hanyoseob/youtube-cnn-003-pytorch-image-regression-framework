@@ -4,74 +4,66 @@ import numpy as np
 import torch
 import torch.nn as nn
 
+from layer import *
+
 ## 네트워크 구축하기
+# U-Net: Convolutional Networks for Biomedical Image Segmentation
+# https://arxiv.org/abs/1505.04597
 class UNet(nn.Module):
-    def __init__(self, nch, nker=64, learning_type="plain"):
+    def __init__(self, nch, nker=64, learning_type="plain", norm="bnorm"):
         super(UNet, self).__init__()
 
         self.learning_type = learning_type
 
-        def CBR2d(in_channels, out_channels, kernel_size=3, stride=1, padding=1, bias=True):
-            layers = []
-            layers += [nn.Conv2d(in_channels=in_channels, out_channels=out_channels,
-                                 kernel_size=kernel_size, stride=stride, padding=padding,
-                                 bias=bias)]
-            layers += [nn.BatchNorm2d(num_features=out_channels)]
-            layers += [nn.ReLU()]
-
-            cbr = nn.Sequential(*layers)
-
-            return cbr
-
         # Contracting path
-        self.enc1_1 = CBR2d(in_channels=nch, out_channels=1 * nker)
-        self.enc1_2 = CBR2d(in_channels=1 * nker, out_channels=1 * nker)
+        self.enc1_1 = CBR2d(in_channels=nch, out_channels=1 * nker, norm=norm)
+        self.enc1_2 = CBR2d(in_channels=1 * nker, out_channels=1 * nker, norm=norm)
 
         self.pool1 = nn.MaxPool2d(kernel_size=2)
 
-        self.enc2_1 = CBR2d(in_channels=nker, out_channels=2 * nker)
-        self.enc2_2 = CBR2d(in_channels=2 * nker, out_channels=2 * nker)
+        self.enc2_1 = CBR2d(in_channels=nker, out_channels=2 * nker, norm=norm)
+        self.enc2_2 = CBR2d(in_channels=2 * nker, out_channels=2 * nker, norm=norm)
 
         self.pool2 = nn.MaxPool2d(kernel_size=2)
 
-        self.enc3_1 = CBR2d(in_channels=2 * nker, out_channels=4 * nker)
-        self.enc3_2 = CBR2d(in_channels=4 * nker, out_channels=4 * nker)
+        self.enc3_1 = CBR2d(in_channels=2 * nker, out_channels=4 * nker, norm=norm)
+        self.enc3_2 = CBR2d(in_channels=4 * nker, out_channels=4 * nker, norm=norm)
 
         self.pool3 = nn.MaxPool2d(kernel_size=2)
 
-        self.enc4_1 = CBR2d(in_channels=4 * nker, out_channels=8 * nker)
-        self.enc4_2 = CBR2d(in_channels=8 * nker, out_channels=8 * nker)
+        self.enc4_1 = CBR2d(in_channels=4 * nker, out_channels=8 * nker, norm=norm)
+        self.enc4_2 = CBR2d(in_channels=8 * nker, out_channels=8 * nker, norm=norm)
 
         self.pool4 = nn.MaxPool2d(kernel_size=2)
 
-        self.enc5_1 = CBR2d(in_channels=8 * nker, out_channels=16 * nker)
+        self.enc5_1 = CBR2d(in_channels=8 * nker, out_channels=16 * nker, norm=norm)
 
         # Expansive path
-        self.dec5_1 = CBR2d(in_channels=16 * nker, out_channels=8 * nker)
+        self.dec5_1 = CBR2d(in_channels=16 * nker, out_channels=8 * nker, norm=norm)
 
         self.unpool4 = nn.ConvTranspose2d(in_channels=8 * nker, out_channels=8 * nker,
                                           kernel_size=2, stride=2, padding=0, bias=True)
 
-        self.dec4_2 = CBR2d(in_channels=2 * 8 * nker, out_channels=8 * nker)
-        self.dec4_1 = CBR2d(in_channels=8 * nker, out_channels=4 * nker)
+        self.dec4_2 = CBR2d(in_channels=2 * 8 * nker, out_channels=8 * nker, norm=norm)
+        self.dec4_1 = CBR2d(in_channels=8 * nker, out_channels=4 * nker, norm=norm)
 
         self.unpool3 = nn.ConvTranspose2d(in_channels=4 * nker, out_channels=4 * nker,
                                           kernel_size=2, stride=2, padding=0, bias=True)
 
-        self.dec3_2 = CBR2d(in_channels=2 * 4 * nker, out_channels=4 * nker)
-        self.dec3_1 = CBR2d(in_channels=4 * nker, out_channels=2 * nker)
+        self.dec3_2 = CBR2d(in_channels=2 * 4 * nker, out_channels=4 * nker, norm=norm)
+        self.dec3_1 = CBR2d(in_channels=4 * nker, out_channels=2 * nker, norm=norm)
 
         self.unpool2 = nn.ConvTranspose2d(in_channels=2 * nker, out_channels=2 * nker,
                                           kernel_size=2, stride=2, padding=0, bias=True)
 
-        self.dec2_2 = CBR2d(in_channels=2 * 2 * nker, out_channels=2 * nker)
-        self.dec2_1 = CBR2d(in_channels=2 * nker, out_channels=1 * nker)
+        self.dec2_2 = CBR2d(in_channels=2 * 2 * nker, out_channels=2 * nker, norm=norm)
+        self.dec2_1 = CBR2d(in_channels=2 * nker, out_channels=1 * nker, norm=norm)
 
         self.unpool1 = nn.ConvTranspose2d(in_channels=1 * nker, out_channels=1 * nker,
                                           kernel_size=2, stride=2, padding=0, bias=True)
 
-        self.dec1_2 = CBR2d(in_channels=2 * 1 * nker, out_channels=1 * nker)
-        self.dec1_1 = CBR2d(in_channels=1 * nker, out_channels=1 * nker)
+        self.dec1_2 = CBR2d(in_channels=2 * 1 * nker, out_channels=1 * nker, norm=norm)
+        self.dec1_1 = CBR2d(in_channels=1 * nker, out_channels=1 * nker, norm=norm)
 
         self.fc = nn.Conv2d(in_channels=1 * nker, out_channels=nch, kernel_size=1, stride=1, padding=0, bias=True)
 
@@ -125,72 +117,60 @@ class UNet(nn.Module):
 
 
 class Hourglass(nn.Module):
-    def __init__(self, nch, nker=64, learning_type="plain"):
+    def __init__(self, nch, nker=64, learning_type="plain", norm="bnorm"):
         super(Hourglass, self).__init__()
 
         self.learning_type = learning_type
 
-        def CBR2d(in_channels, out_channels, kernel_size=3, stride=1, padding=1, bias=True):
-            layers = []
-            layers += [nn.Conv2d(in_channels=in_channels, out_channels=out_channels,
-                                 kernel_size=kernel_size, stride=stride, padding=padding,
-                                 bias=bias)]
-            layers += [nn.BatchNorm2d(num_features=out_channels)]
-            layers += [nn.ReLU()]
-
-            cbr = nn.Sequential(*layers)
-
-            return cbr
-
         # Contracting path
-        self.enc1_1 = CBR2d(in_channels=nch, out_channels=1 * nker)
-        self.enc1_2 = CBR2d(in_channels=1 * nker, out_channels=1 * nker)
+        self.enc1_1 = CBR2d(in_channels=nch, out_channels=1 * nker, norm=norm)
+        self.enc1_2 = CBR2d(in_channels=1 * nker, out_channels=1 * nker, norm=norm)
 
         self.pool1 = nn.MaxPool2d(kernel_size=2)
 
-        self.enc2_1 = CBR2d(in_channels=1 * nker, out_channels=2 * nker)
-        self.enc2_2 = CBR2d(in_channels=2 * nker, out_channels=2 * nker)
+        self.enc2_1 = CBR2d(in_channels=1 * nker, out_channels=2 * nker, norm=norm)
+        self.enc2_2 = CBR2d(in_channels=2 * nker, out_channels=2 * nker, norm=norm)
 
         self.pool2 = nn.MaxPool2d(kernel_size=2)
 
-        self.enc3_1 = CBR2d(in_channels=2 * nker, out_channels=4 * nker)
-        self.enc3_2 = CBR2d(in_channels=4 * nker, out_channels=4 * nker)
+        self.enc3_1 = CBR2d(in_channels=2 * nker, out_channels=4 * nker, norm=norm)
+        self.enc3_2 = CBR2d(in_channels=4 * nker, out_channels=4 * nker, norm=norm)
 
         self.pool3 = nn.MaxPool2d(kernel_size=2)
 
-        self.enc4_1 = CBR2d(in_channels=4 * nker, out_channels=8 * nker)
-        self.enc4_2 = CBR2d(in_channels=8 * nker, out_channels=8 * nker)
+        self.enc4_1 = CBR2d(in_channels=4 * nker, out_channels=8 * nker, norm=norm)
+        self.enc4_2 = CBR2d(in_channels=8 * nker, out_channels=8 * nker, norm=norm)
 
         self.pool4 = nn.MaxPool2d(kernel_size=2)
 
-        self.enc5_1 = CBR2d(in_channels=8 * nker, out_channels=16 * nker)
+        self.enc5_1 = CBR2d(in_channels=8 * nker, out_channels=16 * nker, norm=norm)
 
         # Expansive path
-        self.dec5_1 = CBR2d(in_channels=16 * nker, out_channels=8 * nker)
+        self.dec5_1 = CBR2d(in_channels=16 * nker, out_channels=8 * nker, norm=norm)
 
         self.unpool4 = nn.ConvTranspose2d(in_channels=8 * nker, out_channels=8 * nker,
                                           kernel_size=2, stride=2, padding=0, bias=True)
 
-        self.dec4_2 = CBR2d(in_channels=1 * 8 * nker, out_channels=8 * nker)
-        self.dec4_1 = CBR2d(in_channels=8 * nker, out_channels=4 * nker)
+        self.dec4_2 = CBR2d(in_channels=1 * 8 * nker, out_channels=8 * nker, norm=norm)
+        self.dec4_1 = CBR2d(in_channels=8 * nker, out_channels=4 * nker, norm=norm)
 
         self.unpool3 = nn.ConvTranspose2d(in_channels=4 * nker, out_channels=4 * nker,
                                           kernel_size=2, stride=2, padding=0, bias=True)
 
-        self.dec3_2 = CBR2d(in_channels=1 * 4 * nker, out_channels=4 * nker)
-        self.dec3_1 = CBR2d(in_channels=4 * nker, out_channels=2 * nker)
+        self.dec3_2 = CBR2d(in_channels=1 * 4 * nker, out_channels=4 * nker, norm=norm)
+        self.dec3_1 = CBR2d(in_channels=4 * nker, out_channels=2 * nker, norm=norm)
 
         self.unpool2 = nn.ConvTranspose2d(in_channels=2 * nker, out_channels=2 * nker,
                                           kernel_size=2, stride=2, padding=0, bias=True)
 
-        self.dec2_2 = CBR2d(in_channels=1 * 2 * nker, out_channels=2 * nker)
-        self.dec2_1 = CBR2d(in_channels=2 * nker, out_channels=1 * nker)
+        self.dec2_2 = CBR2d(in_channels=1 * 2 * nker, out_channels=2 * nker, norm=norm)
+        self.dec2_1 = CBR2d(in_channels=2 * nker, out_channels=1 * nker, norm=norm)
 
         self.unpool1 = nn.ConvTranspose2d(in_channels=1 * nker, out_channels=1 * nker,
                                           kernel_size=2, stride=2, padding=0, bias=True)
 
-        self.dec1_2 = CBR2d(in_channels=1 * 1 * nker, out_channels=1 * nker)
-        self.dec1_1 = CBR2d(in_channels=1 * nker, out_channels=1 * nker)
+        self.dec1_2 = CBR2d(in_channels=1 * 1 * nker, out_channels=1 * nker, norm=norm)
+        self.dec1_1 = CBR2d(in_channels=1 * nker, out_channels=1 * nker, norm=norm)
 
         self.fc = nn.Conv2d(in_channels=1 * nker, out_channels=nch, kernel_size=1, stride=1, padding=0, bias=True)
 
