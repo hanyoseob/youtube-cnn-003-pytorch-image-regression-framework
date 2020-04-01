@@ -26,18 +26,18 @@ parser.add_argument("--batch_size", default=4, type=int, dest="batch_size")
 parser.add_argument("--num_epoch", default=100, type=int, dest="num_epoch")
 
 parser.add_argument("--data_dir", default="./datasets/BSR/BSDS500/data/images", type=str, dest="data_dir")
-parser.add_argument("--ckpt_dir", default="./checkpoint/inpainting/plain", type=str, dest="ckpt_dir")
-parser.add_argument("--log_dir", default="./log/inpainting/plain", type=str, dest="log_dir")
-parser.add_argument("--result_dir", default="./result/inpainting/plain", type=str, dest="result_dir")
+parser.add_argument("--ckpt_dir", default="./checkpoint/inpainting/residual", type=str, dest="ckpt_dir")
+parser.add_argument("--log_dir", default="./log/inpainting/residual", type=str, dest="log_dir")
+parser.add_argument("--result_dir", default="./result/inpainting/residual", type=str, dest="result_dir")
 
-parser.add_argument("--mode", default="test", type=str, dest="mode")
-parser.add_argument("--train_continue", default="off", type=str, dest="train_continue")
+parser.add_argument("--mode", default="train", choices=["train", "test"], type=str, dest="mode")
+parser.add_argument("--train_continue", default="off", choices=["on", "off"], type=str, dest="train_continue")
 
 parser.add_argument("--task", default="inpainting", choices=["inpainting", "denoising", "super_resolution"], type=str, dest="task")
 parser.add_argument('--opts', '--list', nargs='+', default=['random', 0.5], dest='opts')
 
 parser.add_argument("--network", default="unet", choices=["unet", "hourglass"], type=str, dest="network")
-parser.add_argument("--learning_type", default="plain", choices=["plain", "residual"], type=str, dest="learning_type")
+parser.add_argument("--learning_type", default="residual", choices=["plain", "residual"], type=str, dest="learning_type")
 
 args = parser.parse_args()
 
