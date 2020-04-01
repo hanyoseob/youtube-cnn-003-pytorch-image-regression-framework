@@ -26,18 +26,18 @@ parser.add_argument("--batch_size", default=4, type=int, dest="batch_size")
 parser.add_argument("--num_epoch", default=100, type=int, dest="num_epoch")
 
 parser.add_argument("--data_dir", default="./datasets/BSR/BSDS500/data/images", type=str, dest="data_dir")
-parser.add_argument("--ckpt_dir", default="./checkpoint/inpainting/residual", type=str, dest="ckpt_dir")
-parser.add_argument("--log_dir", default="./log/inpainting/residual", type=str, dest="log_dir")
-parser.add_argument("--result_dir", default="./result/inpainting/residual", type=str, dest="result_dir")
+parser.add_argument("--ckpt_dir", default="./checkpoint/inpainting/plain", type=str, dest="ckpt_dir")
+parser.add_argument("--log_dir", default="./log/inpainting/plain", type=str, dest="log_dir")
+parser.add_argument("--result_dir", default="./result/inpainting/plain", type=str, dest="result_dir")
 
 parser.add_argument("--mode", default="train", choices=["train", "test"], type=str, dest="mode")
 parser.add_argument("--train_continue", default="off", choices=["on", "off"], type=str, dest="train_continue")
 
 parser.add_argument("--task", default="inpainting", choices=["inpainting", "denoising", "super_resolution"], type=str, dest="task")
-parser.add_argument('--opts', '--list', nargs='+', default=['random', 0.5], dest='opts')
+parser.add_argument('--opts', nargs='+', default=['random', 0.5], dest='opts')
 
 parser.add_argument("--network", default="unet", choices=["unet", "hourglass"], type=str, dest="network")
-parser.add_argument("--learning_type", default="residual", choices=["plain", "residual"], type=str, dest="learning_type")
+parser.add_argument("--learning_type", default="plain", choices=["plain", "residual"], type=str, dest="learning_type")
 
 args = parser.parse_args()
 
@@ -100,10 +100,10 @@ if mode == 'train':
     transform_val = transforms.Compose([RandomCrop(shape=(320, 480)), Normalization(mean=0.5, std=0.5), RandomFlip(), ToTensor()])
 
     dataset_train = Dataset(data_dir=os.path.join(data_dir, 'train'), transform=transform_train, task=task, opts=opts)
-    loader_train = DataLoader(dataset_train, batch_size=batch_size, shuffle=True, num_workers=0)
+    loader_train = DataLoader(dataset_train, batch_size=batch_size, shuffle=True, num_workers=8)
 
     dataset_val = Dataset(data_dir=os.path.join(data_dir, 'val'), transform=transform_val, task=task, opts=opts)
-    loader_val = DataLoader(dataset_val, batch_size=batch_size, shuffle=False, num_workers=0)
+    loader_val = DataLoader(dataset_val, batch_size=batch_size, shuffle=False, num_workers=8)
 
     # 그밖에 부수적인 variables 설정하기
     num_data_train = len(dataset_train)
@@ -115,7 +115,7 @@ else:
     transform_test = transforms.Compose([RandomCrop(shape=(320, 480)), Normalization(mean=0.5, std=0.5), ToTensor()])
 
     dataset_test = Dataset(data_dir=os.path.join(data_dir, 'test'), transform=transform_test, task=task, opts=opts)
-    loader_test = DataLoader(dataset_test, batch_size=batch_size, shuffle=False, num_workers=0)
+    loader_test = DataLoader(dataset_test, batch_size=batch_size, shuffle=False, num_workers=8)
 
     # 그밖에 부수적인 variables 설정하기
     num_data_test = len(dataset_test)
