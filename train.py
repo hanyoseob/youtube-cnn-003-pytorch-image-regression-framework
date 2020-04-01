@@ -21,6 +21,9 @@ from torchvision import transforms
 parser = argparse.ArgumentParser(description="Regression Tasks such as inpainting, denoising, and super_resolution",
                                  formatter_class=argparse.ArgumentDefaultsHelpFormatter)
 
+parser.add_argument("--mode", default="train", choices=["train", "test"], type=str, dest="mode")
+parser.add_argument("--train_continue", default="off", choices=["on", "off"], type=str, dest="train_continue")
+
 parser.add_argument("--lr", default=1e-3, type=float, dest="lr")
 parser.add_argument("--batch_size", default=4, type=int, dest="batch_size")
 parser.add_argument("--num_epoch", default=100, type=int, dest="num_epoch")
@@ -30,11 +33,13 @@ parser.add_argument("--ckpt_dir", default="./checkpoint/inpainting/plain", type=
 parser.add_argument("--log_dir", default="./log/inpainting/plain", type=str, dest="log_dir")
 parser.add_argument("--result_dir", default="./result/inpainting/plain", type=str, dest="result_dir")
 
-parser.add_argument("--mode", default="train", choices=["train", "test"], type=str, dest="mode")
-parser.add_argument("--train_continue", default="off", choices=["on", "off"], type=str, dest="train_continue")
-
 parser.add_argument("--task", default="super_resolution", choices=["inpainting", "denoising", "super_resolution"], type=str, dest="task")
 parser.add_argument('--opts', '--list', nargs='+', default=['bilinear', 4], dest='opts')
+
+parser.add_argument("--ny", default=320, type=int, dest="ny")
+parser.add_argument("--nx", default=480, type=int, dest="nx")
+parser.add_argument("--nch", default=3, type=int, dest="nch")
+parser.add_argument("--nker", default=64, type=int, dest="nker")
 
 parser.add_argument("--network", default="unet", choices=["unet", "hourglass"], type=str, dest="network")
 parser.add_argument("--learning_type", default="plain", choices=["plain", "residual"], type=str, dest="learning_type")
@@ -42,6 +47,9 @@ parser.add_argument("--learning_type", default="plain", choices=["plain", "resid
 args = parser.parse_args()
 
 ## 트레이닝 파라메터 설정하기
+mode = args.mode
+train_continue = args.train_continue
+
 lr = args.lr
 batch_size = args.batch_size
 num_epoch = args.num_epoch
@@ -54,11 +62,13 @@ result_dir = args.result_dir
 task = args.task
 opts = [args.opts[0], np.asarray(args.opts[1:]).astype(np.float)]
 
-learning_type = args.learning_type
+ny = args.ny
+nx = args.nx
+nch = args.nch
+nker = args.nker
 
 network = args.network
-mode = args.mode
-train_continue = args.train_continue
+learning_type = args.learning_type
 
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
@@ -96,8 +106,8 @@ if not os.path.exists(result_dir):
 
 ## 네트워크 학습하기
 if mode == 'train':
-    transform_train = transforms.Compose([RandomCrop(shape=(320, 480)), Normalization(mean=0.5, std=0.5), RandomFlip(), ToTensor()])
-    transform_val = transforms.Compose([RandomCrop(shape=(320, 480)), Normalization(mean=0.5, std=0.5), RandomFlip(), ToTensor()])
+    transform_train = transforms.Compose([RandomCrop(shape=(ny, nx)), Normalization(mean=0.5, std=0.5), RandomFlip(), ToTensor()])
+    transform_val = transforms.Compose([RandomCrop(shape=(ny, nx)), Normalization(mean=0.5, std=0.5), RandomFlip(), ToTensor()])
 
     dataset_train = Dataset(data_dir=os.path.join(data_dir, 'train'), transform=transform_train, task=task, opts=opts)
     loader_train = DataLoader(dataset_train, batch_size=batch_size, shuffle=True, num_workers=8)
@@ -112,7 +122,7 @@ if mode == 'train':
     num_batch_train = np.ceil(num_data_train / batch_size)
     num_batch_val = np.ceil(num_data_val / batch_size)
 else:
-    transform_test = transforms.Compose([RandomCrop(shape=(320, 480)), Normalization(mean=0.5, std=0.5), ToTensor()])
+    transform_test = transforms.Compose([RandomCrop(shape=(ny, nx)), Normalization(mean=0.5, std=0.5), ToTensor()])
 
     dataset_test = Dataset(data_dir=os.path.join(data_dir, 'test'), transform=transform_test, task=task, opts=opts)
     loader_test = DataLoader(dataset_test, batch_size=batch_size, shuffle=False, num_workers=8)
@@ -124,9 +134,9 @@ else:
 
 ## 네트워크 생성하기
 if network == "unet":
-    net = UNet(learning_type=learning_type).to(device)
+    net = UNet(nch=nch, nker=nker, learning_type=learning_type).to(device)
 elif network == "hourglass":
-    net = Hourglass(learning_type=learning_type).to(device)
+    net = Hourglass(nch=nch, nker=nker, learning_type=learning_type).to(device)
 
 ## 손실함수 정의하기
 # fn_loss = nn.BCEWithLogitsLoss().to(device)
