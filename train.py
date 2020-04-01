@@ -18,7 +18,7 @@ import matplotlib.pyplot as plt
 from torchvision import transforms
 
 ## Parser 생성하기
-parser = argparse.ArgumentParser(description="Regressino Tasks such as inpainint, denoising, and super_resolution",
+parser = argparse.ArgumentParser(description="Regression Tasks such as inpainting, denoising, and super_resolution",
                                  formatter_class=argparse.ArgumentDefaultsHelpFormatter)
 
 parser.add_argument("--lr", default=1e-3, type=float, dest="lr")
@@ -30,12 +30,14 @@ parser.add_argument("--ckpt_dir", default="./checkpoint", type=str, dest="ckpt_d
 parser.add_argument("--log_dir", default="./log", type=str, dest="log_dir")
 parser.add_argument("--result_dir", default="./result", type=str, dest="result_dir")
 
-parser.add_argument("--task", default="denoising", choices=["inpaining", "denoising", "super_resolution"], type=str, dest="task")
-parser.add_argument('--opts', '--list', nargs='+', default=['random', '30.0'], dest='opts')
-
-parser.add_argument("--network", default="unet", type=str, dest="network")
 parser.add_argument("--mode", default="train", type=str, dest="mode")
 parser.add_argument("--train_continue", default="off", type=str, dest="train_continue")
+
+parser.add_argument("--task", default="inpainting", choices=["inpainting", "denoising", "super_resolution"], type=str, dest="task")
+parser.add_argument('--opts', '--list', nargs='+', default=['uniform', 4, 4], dest='opts')
+
+parser.add_argument("--network", default="unet", choices=["unet", "hourglass"], type=str, dest="network")
+parser.add_argument("--learning_type", default="plain", type=str, dest="learning_type")
 
 args = parser.parse_args()
 
@@ -52,6 +54,8 @@ result_dir = args.result_dir
 task = args.task
 opts = [args.opts[0], np.asarray(args.opts[1:]).astype(np.float)]
 
+learning_type = args.learning_type
+
 network = args.network
 mode = args.mode
 train_continue = args.train_continue
@@ -64,19 +68,31 @@ print("number of epoch: %d" % num_epoch)
 print("data dir: %s" % data_dir)
 print("ckpt dir: %s" % ckpt_dir)
 print("log dir: %s" % log_dir)
+print("result dir: %s" % result_dir)
 
 print("task: %s" % task)
 print("opts: %s" % opts)
 
-print("network: %s" % network)
+print("learning type: %s" % learning_type)
 
-print("result dir: %s" % result_dir)
+print("network: %s" % network)
 print("mode: %s" % mode)
+print("device: %s" % device)
 
 ## 디렉토리 생성하기
+result_dir_train = os.path.join(result_dir, 'train')
+result_dir_val = os.path.join(result_dir, 'val')
+result_dir_test = os.path.join(result_dir, 'test')
+
 if not os.path.exists(result_dir):
-    os.makedirs(os.path.join(result_dir, 'png'))
-    os.makedirs(os.path.join(result_dir, 'numpy'))
+    os.makedirs(os.path.join(result_dir_train, 'png'))
+    # os.makedirs(os.path.join(result_dir_train, 'numpy'))
+
+    os.makedirs(os.path.join(result_dir_val, 'png'))
+    # os.makedirs(os.path.join(result_dir_val, 'numpy'))
+
+    os.makedirs(os.path.join(result_dir_test, 'png'))
+    os.makedirs(os.path.join(result_dir_test, 'numpy'))
 
 ## 네트워크 학습하기
 if mode == 'train':
@@ -84,10 +100,10 @@ if mode == 'train':
     transform_val = transforms.Compose([RandomCrop(shape=(320, 480)), Normalization(mean=0.5, std=0.5), RandomFlip(), ToTensor()])
 
     dataset_train = Dataset(data_dir=os.path.join(data_dir, 'train'), transform=transform_train, task=task, opts=opts)
-    loader_train = DataLoader(dataset_train, batch_size=batch_size, shuffle=True, num_workers=0)
+    loader_train = DataLoader(dataset_train, batch_size=batch_size, shuffle=True, num_workers=8)
 
     dataset_val = Dataset(data_dir=os.path.join(data_dir, 'val'), transform=transform_val, task=task, opts=opts)
-    loader_val = DataLoader(dataset_val, batch_size=batch_size, shuffle=False, num_workers=0)
+    loader_val = DataLoader(dataset_val, batch_size=batch_size, shuffle=False, num_workers=8)
 
     # 그밖에 부수적인 variables 설정하기
     num_data_train = len(dataset_train)
@@ -108,9 +124,9 @@ else:
 
 ## 네트워크 생성하기
 if network == "unet":
-    net = UNet().to(device)
+    net = UNet(learning_type=learning_type).to(device)
 elif network == "hourglass":
-    net = Hourglass().to(device)
+    net = Hourglass(learning_type=learning_type).to(device)
 
 ## 손실함수 정의하기
 # fn_loss = nn.BCEWithLogitsLoss().to(device)
@@ -163,17 +179,24 @@ if mode == 'train':
             print("TRAIN: EPOCH %04d / %04d | BATCH %04d / %04d | LOSS %.4f" %
                   (epoch, num_epoch, batch, num_batch_train, np.mean(loss_mse)))
 
-            # Tensorboard 저장하기
-            label = fn_tonumpy(fn_denorm(label, mean=0.5, std=0.5))
-            input = fn_tonumpy(fn_denorm(input, mean=0.5, std=0.5))
-            output = fn_tonumpy(fn_denorm(output, mean=0.5, std=0.5))
+            if batch % 10 == 0:
+              # Tensorboard 저장하기
+              label = fn_tonumpy(fn_denorm(label, mean=0.5, std=0.5))
+              input = fn_tonumpy(fn_denorm(input, mean=0.5, std=0.5))
+              output = fn_tonumpy(fn_denorm(output, mean=0.5, std=0.5))
 
-            input = np.clip(input, a_min=0, a_max=1)
-            output = np.clip(output, a_min=0, a_max=1)
+              input = np.clip(input, a_min=0, a_max=1)
+              output = np.clip(output, a_min=0, a_max=1)
 
-            writer_train.add_image('label', label, num_batch_train * (epoch - 1) + batch, dataformats='NHWC')
-            writer_train.add_image('input', input, num_batch_train * (epoch - 1) + batch, dataformats='NHWC')
-            writer_train.add_image('output', output, num_batch_train * (epoch - 1) + batch, dataformats='NHWC')
+              id = num_batch_train * (epoch - 1) + batch
+
+              plt.imsave(os.path.join(result_dir_train, 'png', '%04d_label.png' % id), label[0].squeeze(), cmap=cmap)
+              plt.imsave(os.path.join(result_dir_train, 'png', '%04d_input.png' % id), input[0].squeeze(), cmap=cmap)
+              plt.imsave(os.path.join(result_dir_train, 'png', '%04d_output.png' % id), output[0].squeeze(), cmap=cmap)
+
+              # writer_train.add_image('label', label, id, dataformats='NHWC')
+              # writer_train.add_image('input', input, id, dataformats='NHWC')
+              # writer_train.add_image('output', output, id, dataformats='NHWC')
 
         writer_train.add_scalar('loss', np.mean(loss_mse), epoch)
 
@@ -196,21 +219,28 @@ if mode == 'train':
                 print("VALID: EPOCH %04d / %04d | BATCH %04d / %04d | LOSS %.4f" %
                       (epoch, num_epoch, batch, num_batch_val, np.mean(loss_mse)))
 
-                # Tensorboard 저장하기
-                label = fn_tonumpy(fn_denorm(label, mean=0.5, std=0.5))
-                input = fn_tonumpy(fn_denorm(input, mean=0.5, std=0.5))
-                output = fn_tonumpy(fn_denorm(output, mean=0.5, std=0.5))
+                if batch % 10 == 0:
+                  # Tensorboard 저장하기
+                  label = fn_tonumpy(fn_denorm(label, mean=0.5, std=0.5))
+                  input = fn_tonumpy(fn_denorm(input, mean=0.5, std=0.5))
+                  output = fn_tonumpy(fn_denorm(output, mean=0.5, std=0.5))
 
-                input = np.clip(input, a_min=0, a_max=1)
-                output = np.clip(output, a_min=0, a_max=1)
+                  input = np.clip(input, a_min=0, a_max=1)
+                  output = np.clip(output, a_min=0, a_max=1)
 
-                writer_val.add_image('label', label, num_batch_val * (epoch - 1) + batch, dataformats='NHWC')
-                writer_val.add_image('input', input, num_batch_val * (epoch - 1) + batch, dataformats='NHWC')
-                writer_val.add_image('output', output, num_batch_val * (epoch - 1) + batch, dataformats='NHWC')
+                  id = num_batch_val * (epoch - 1) + batch
+
+                  plt.imsave(os.path.join(result_dir_val, 'png', '%04d_label.png' % id), label[0].squeeze(), cmap=cmap)
+                  plt.imsave(os.path.join(result_dir_val, 'png', '%04d_input.png' % id), input[0].squeeze(), cmap=cmap)
+                  plt.imsave(os.path.join(result_dir_val, 'png', '%04d_output.png' % id), output[0].squeeze(), cmap=cmap)
+
+                  # writer_val.add_image('label', label, id, dataformats='NHWC')
+                  # writer_val.add_image('input', input, id, dataformats='NHWC')
+                  # writer_val.add_image('output', output, id, dataformats='NHWC')
 
         writer_val.add_scalar('loss', np.mean(loss_mse), epoch)
 
-        if epoch % 50 == 0:
+        if epoch % 5 == 0:
             save(ckpt_dir=ckpt_dir, net=net, optim=optim, epoch=epoch)
 
     writer_train.close()
@@ -247,13 +277,13 @@ else:
             for j in range(label.shape[0]):
                 id = num_batch_test * (batch - 1) + j
 
-                plt.imsave(os.path.join(result_dir, 'png', 'label_%04d.png' % id), label[j].squeeze(), cmap=cmap)
-                plt.imsave(os.path.join(result_dir, 'png', 'input_%04d.png' % id), input[j].squeeze(), cmap=cmap)
-                plt.imsave(os.path.join(result_dir, 'png', 'output_%04d.png' % id), output[j].squeeze(), cmap=cmap)
+                plt.imsave(os.path.join(result_dir_test, 'png', 'label_%04d.png' % id), label[j].squeeze(), cmap=cmap)
+                plt.imsave(os.path.join(result_dir_test, 'png', 'input_%04d.png' % id), input[j].squeeze(), cmap=cmap)
+                plt.imsave(os.path.join(result_dir_test, 'png', 'output_%04d.png' % id), output[j].squeeze(), cmap=cmap)
 
-                np.save(os.path.join(result_dir, 'numpy', 'label_%04d.npy' % id), label[j].squeeze())
-                np.save(os.path.join(result_dir, 'numpy', 'input_%04d.npy' % id), input[j].squeeze())
-                np.save(os.path.join(result_dir, 'numpy', 'output_%04d.npy' % id), output[j].squeeze())
+                np.save(os.path.join(result_dir_test, 'numpy', 'label_%04d.npy' % id), label[j].squeeze())
+                np.save(os.path.join(result_dir_test, 'numpy', 'input_%04d.npy' % id), input[j].squeeze())
+                np.save(os.path.join(result_dir_test, 'numpy', 'output_%04d.npy' % id), output[j].squeeze())
 
     print("AVERAGE TEST: BATCH %04d / %04d | LOSS %.4f" %
           (batch, num_batch_test, np.mean(loss_mse)))

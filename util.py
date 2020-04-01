@@ -33,11 +33,11 @@ def load(ckpt_dir, net, optim):
 
 ## Add Sampling
 def add_sampling(img, type="random", opts=None):
-    sz = img
+    sz = img.shape
 
     if type == "uniform":
-        ds_y = opts[0]
-        ds_x = opts[1]
+        ds_y = opts[0].astype(np.int)
+        ds_x = opts[1].astype(np.int)
 
         msk = np.zeros(img.shape)
         msk[::ds_y, ::ds_x, :] = 1

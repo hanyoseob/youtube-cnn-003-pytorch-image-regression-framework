@@ -4,7 +4,7 @@ import numpy as np
 import torch
 import torch.nn as nn
 
-from skimage.transform import radon, iradon, rescale, resize
+from skimage.transform import resize
 
 import matplotlib.pyplot as plt
 from util import *
@@ -47,11 +47,11 @@ class Dataset(torch.utils.data.Dataset):
         label = data
 
         if self.task == "inpainting":
-            input = add_sampling(data, type=self.opts[0], opts=self.opts[1:])
+            input = add_sampling(data, type=self.opts[0], opts=self.opts[1])
         elif self.task == "denoising":
-            input = add_noise(data, type=self.opts[0], opts=self.opts[1:])
+            input = add_noise(data, type=self.opts[0], opts=self.opts[1])
         elif self.task == "super_resolution":
-            input = add_blur(data, type=self.opts[0], opts=self.opts[1:])
+            input = add_blur(data, type=self.opts[0], opts=self.opts[1])
 
         label = label/255.0
         input = input/255.0
