@@ -1,7 +1,7 @@
 import os
 import numpy as np
 from scipy.stats import poisson
-from skimage.transform import rescale
+from skimage.transform import rescale, resize
 
 import torch
 import torch.nn as nn
@@ -116,9 +116,13 @@ def add_blur(img, type="bilinear", opts=None):
     elif type == "biquintic":
         order = 5
 
-    dw = 1.0 / opts[0]
+    sz = img.shape
 
-    dst = rescale(img, scale=(dw, dw, 1), order=order)
-    rec = rescale(dst, scale=(1 / dw, 1 / dw, 1), order=order)
+    # dw = 1.0 / opts[0]
+    # dst = rescale(img, scale=(dw, dw, 1), order=order)
+    # rec = rescale(dst, scale=(1 / dw, 1 / dw, 1), order=order)
+
+    dst = resize(img, output_shape=(sz[0] // opts[0], sz[1] // opts[0], sz[2]), order=order)
+    rec = resize(dst, output_shape=(sz[0], sz[1], sz[2]), order=order)
 
     return rec

@@ -38,28 +38,26 @@ class Dataset(torch.utils.data.Dataset):
         # label = np.load(os.path.join(self.data_dir, self.lst_label[index]))
         # input = np.load(os.path.join(self.data_dir, self.lst_input[index]))
 
-        data = plt.imread(os.path.join(self.data_dir, self.lst_data[index]))
-        sz = data.shape
+        img = plt.imread(os.path.join(self.data_dir, self.lst_data[index]))
+        sz = img.shape
 
         if sz[0] > sz[1]:
-            data = data.transpose((1, 0, 2))
+            img = img.transpose((1, 0, 2))
 
-        label = data
+        if img.ndim == 2:
+            img = img[:, :, np.newaxis]
+
+        if img.dtype == np.uint8:
+            img = img / 255.0
+
+        label = img
 
         if self.task == "inpainting":
-            input = add_sampling(data, type=self.opts[0], opts=self.opts[1])
+            input = add_sampling(img, type=self.opts[0], opts=self.opts[1])
         elif self.task == "denoising":
-            input = add_noise(data, type=self.opts[0], opts=self.opts[1])
+            input = add_noise(img, type=self.opts[0], opts=self.opts[1])
         elif self.task == "super_resolution":
-            input = add_blur(data, type=self.opts[0], opts=self.opts[1])
-
-        label = label/255.0
-        input = input/255.0
-
-        if label.ndim == 2:
-            label = label[:, :, np.newaxis]
-        if input.ndim == 2:
-            input = input[:, :, np.newaxis]
+            input = add_blur(img, type=self.opts[0], opts=self.opts[1])
 
         data = {'input': input, 'label': label}
 

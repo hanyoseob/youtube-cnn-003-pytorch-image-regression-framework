@@ -33,8 +33,8 @@ parser.add_argument("--result_dir", default="./result/inpainting/plain", type=st
 parser.add_argument("--mode", default="train", choices=["train", "test"], type=str, dest="mode")
 parser.add_argument("--train_continue", default="off", choices=["on", "off"], type=str, dest="train_continue")
 
-parser.add_argument("--task", default="inpainting", choices=["inpainting", "denoising", "super_resolution"], type=str, dest="task")
-parser.add_argument('--opts', nargs='+', default=['random', 0.5], dest='opts')
+parser.add_argument("--task", default="super_resolution", choices=["inpainting", "denoising", "super_resolution"], type=str, dest="task")
+parser.add_argument('--opts', '--list', nargs='+', default=['bilinear', 4], dest='opts')
 
 parser.add_argument("--network", default="unet", choices=["unet", "hourglass"], type=str, dest="network")
 parser.add_argument("--learning_type", default="plain", choices=["plain", "residual"], type=str, dest="learning_type")
@@ -240,7 +240,7 @@ if mode == 'train':
 
         writer_val.add_scalar('loss', np.mean(loss_mse), epoch)
 
-        if epoch % 5 == 0:
+        if epoch % 20 == 0:
             save(ckpt_dir=ckpt_dir, net=net, optim=optim, epoch=epoch)
 
     writer_train.close()
