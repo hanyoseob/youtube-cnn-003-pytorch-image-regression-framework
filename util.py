@@ -91,12 +91,12 @@ def add_noise(img, type="random", opts=None):
     if type == "random":
         sgm = opts[0]
 
-        noise = sgm * np.random.randn(sz[0], sz[1], sz[2])
+        noise = sgm / 255.0 * np.random.randn(sz[0], sz[1], sz[2])
 
         dst = img + noise
 
     elif type == "poisson":
-        dst = poisson.rvs(img)
+        dst = poisson.rvs(255.0 * img) / 255.0
         noise = dst - img
 
     return dst
@@ -117,12 +117,17 @@ def add_blur(img, type="bilinear", opts=None):
         order = 5
 
     sz = img.shape
+    if len(opts) == 1:
+        keepdim = True
+    else:
+        keepdim = opts[1]
 
     # dw = 1.0 / opts[0]
     # dst = rescale(img, scale=(dw, dw, 1), order=order)
-    # rec = rescale(dst, scale=(1 / dw, 1 / dw, 1), order=order)
-
     dst = resize(img, output_shape=(sz[0] // opts[0], sz[1] // opts[0], sz[2]), order=order)
-    rec = resize(dst, output_shape=(sz[0], sz[1], sz[2]), order=order)
 
-    return rec
+    if keepdim:
+        # dst = rescale(dst, scale=(1 / dw, 1 / dw, 1), order=order)
+        dst = resize(dst, output_shape=(sz[0], sz[1], sz[2]), order=order)
+
+    return dst

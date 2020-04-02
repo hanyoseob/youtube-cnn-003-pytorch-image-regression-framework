@@ -34,7 +34,7 @@ parser.add_argument("--log_dir", default="./log/inpainting/plain", type=str, des
 parser.add_argument("--result_dir", default="./result/inpainting/plain", type=str, dest="result_dir")
 
 parser.add_argument("--task", default="super_resolution", choices=["inpainting", "denoising", "super_resolution"], type=str, dest="task")
-parser.add_argument('--opts', '--list', nargs='+', default=['bilinear', 4], dest='opts')
+parser.add_argument('--opts', nargs='+', default=['bilinear', 4], dest='opts')
 
 parser.add_argument("--ny", default=320, type=int, dest="ny")
 parser.add_argument("--nx", default=480, type=int, dest="nx")
@@ -72,13 +72,11 @@ learning_type = args.learning_type
 
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
+print("mode: %s" % mode)
+
 print("learning rate: %.4e" % lr)
 print("batch size: %d" % batch_size)
 print("number of epoch: %d" % num_epoch)
-print("data dir: %s" % data_dir)
-print("ckpt dir: %s" % ckpt_dir)
-print("log dir: %s" % log_dir)
-print("result dir: %s" % result_dir)
 
 print("task: %s" % task)
 print("opts: %s" % opts)
@@ -86,7 +84,11 @@ print("opts: %s" % opts)
 print("network: %s" % network)
 print("learning type: %s" % learning_type)
 
-print("mode: %s" % mode)
+print("data dir: %s" % data_dir)
+print("ckpt dir: %s" % ckpt_dir)
+print("log dir: %s" % log_dir)
+print("result dir: %s" % result_dir)
+
 print("device: %s" % device)
 
 ## 디렉토리 생성하기

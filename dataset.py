@@ -4,8 +4,6 @@ import numpy as np
 import torch
 import torch.nn as nn
 
-from skimage.transform import resize
-
 import matplotlib.pyplot as plt
 from util import *
 
@@ -18,6 +16,7 @@ class Dataset(torch.utils.data.Dataset):
         self.opts = opts
 
         lst_data = os.listdir(self.data_dir)
+        lst_data = [f for f in lst_data if f.endswith('jpg') | f.endswith('jpeg') | f.endswith('png')]
 
         # lst_label = [f for f in lst_data if f.startswith('label')]
         # lst_input = [f for f in lst_data if f.startswith('input')]
@@ -132,18 +131,3 @@ class RandomCrop(object):
     label = label[id_y, id_x]
 
     return {'input': input, 'label': label}
-
-
-class Resize(object):
-  def __init__(self, shape):
-      self.shape = shape
-
-  def __call__(self, data):
-      input, label = data['input'], data['label']
-
-      new_h, new_w = self.shape
-
-      input = resize(input, (new_h, new_w))
-      label = resize(label, (new_h, new_w))
-
-      return {'input': input, 'label': label}
