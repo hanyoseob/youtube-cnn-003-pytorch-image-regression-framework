@@ -1,3 +1,43 @@
+"""
+-------------------------------------
+denoising
+-------------------------------------
+python  train.py \
+        --mode train \
+        --network unet \
+        --learning_type residual \
+        --task denoising \
+        --opts random 30.0
+
+-------------------------------------
+inpainting
+-------------------------------------
+python  train.py \
+        --mode train \
+        --network unet \
+        --learning_type residual \
+        --task inpainting \
+        --opts uniform 0.5
+
+-------------------------------------
+python  train.py \
+        --mode train \
+        --network unet \
+        --learning_type residual \
+        --task inpainting \
+        --opts random 0.5
+
+-------------------------------------
+super_resolution
+-------------------------------------
+python  train.py \
+        --mode train \
+        --network unet \
+        --learning_type residual \
+        --task super_resolution \
+        --opts bilinear 4.0
+"""
+
 ## 라이브러리 추가하기
 import argparse
 
@@ -287,7 +327,7 @@ else:
             output = fn_tonumpy(fn_denorm(output, mean=0.5, std=0.5))
 
             for j in range(label.shape[0]):
-                id = num_batch_test * (batch - 1) + j
+                id = batch_size * (batch - 1) + j
 
                 label_ = label[j]
                 input_ = input[j]
