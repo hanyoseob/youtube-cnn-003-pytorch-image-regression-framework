@@ -15,6 +15,9 @@ class Dataset(torch.utils.data.Dataset):
         self.task = task
         self.opts = opts
 
+        # Updated at Apr 5 2020
+        self.to_tensor = ToTensor()
+
         lst_data = os.listdir(self.data_dir)
         lst_data = [f for f in lst_data if f.endswith('jpg') | f.endswith('jpeg') | f.endswith('png')]
 
@@ -49,32 +52,52 @@ class Dataset(torch.utils.data.Dataset):
         if img.dtype == np.uint8:
             img = img / 255.0
 
-        label = img
+        # label = img
+        #
+        # if self.task == "inpainting":
+        #     input = add_sampling(img, type=self.opts[0], opts=self.opts[1])
+        # elif self.task == "denoising":
+        #     input = add_noise(img, type=self.opts[0], opts=self.opts[1])
+        # elif self.task == "super_resolution":
+        #     input = add_blur(img, type=self.opts[0], opts=self.opts[1])
+        #
+        # data = {'input': input, 'label': label}
+        #
+        # if self.transform:
+        #     data = self.transform(data)
+
+        # Updated at Apr 5 2020
+        data = {'label': img}
 
         if self.task == "inpainting":
-            input = add_sampling(img, type=self.opts[0], opts=self.opts[1])
+            data['input'] = add_sampling(data['label'], type=self.opts[0], opts=self.opts[1])
         elif self.task == "denoising":
-            input = add_noise(img, type=self.opts[0], opts=self.opts[1])
-        elif self.task == "super_resolution":
-            input = add_blur(img, type=self.opts[0], opts=self.opts[1])
-
-        data = {'input': input, 'label': label}
+            data['input'] = add_noise(data['label'], type=self.opts[0], opts=self.opts[1])
 
         if self.transform:
             data = self.transform(data)
 
-        return data
+        if self.task == "super_resolution":
+            data['input'] = add_blur(data['label'], type=self.opts[0], opts=self.opts[1])
 
+        data = self.to_tensor(data)
+
+        return data
 
 ## 트렌스폼 구현하기
 class ToTensor(object):
     def __call__(self, data):
-        label, input = data['label'], data['input']
+        # label, input = data['label'], data['input']
+        #
+        # label = label.transpose((2, 0, 1)).astype(np.float32)
+        # input = input.transpose((2, 0, 1)).astype(np.float32)
+        #
+        # data = {'label': torch.from_numpy(label), 'input': torch.from_numpy(input)}
 
-        label = label.transpose((2, 0, 1)).astype(np.float32)
-        input = input.transpose((2, 0, 1)).astype(np.float32)
-
-        data = {'label': torch.from_numpy(label), 'input': torch.from_numpy(input)}
+        # Updated at Apr 5 2020
+        for key, value in data.items():
+            value = value.transpose((2, 0, 1)).astype(np.float32)
+            data[key] = torch.from_numpy(value)
 
         return data
 
@@ -84,29 +107,41 @@ class Normalization(object):
         self.std = std
 
     def __call__(self, data):
-        label, input = data['label'], data['input']
+        # label, input = data['label'], data['input']
+        #
+        # input = (input - self.mean) / self.std
+        # label = (label - self.mean) / self.std
+        #
+        # data = {'label': label, 'input': input}
 
-        input = (input - self.mean) / self.std
-        label = (label - self.mean) / self.std
-
-        data = {'label': label, 'input': input}
+        # Updated at Apr 5 2020
+        for key, value in data.items():
+            data[key] = (value - self.mean) / self.std
 
         return data
 
 
 class RandomFlip(object):
     def __call__(self, data):
-        label, input = data['label'], data['input']
+        # label, input = data['label'], data['input']
 
         if np.random.rand() > 0.5:
-            label = np.fliplr(label)
-            input = np.fliplr(input)
+            # label = np.fliplr(label)
+            # input = np.fliplr(input)
+
+            # Updated at Apr 5 2020
+            for key, value in data.items():
+                data[key] = np.flip(value, axis=0)
 
         if np.random.rand() > 0.5:
-            label = np.flipud(label)
-            input = np.flipud(input)
+            # label = np.flipud(label)
+            # input = np.flipud(input)
 
-        data = {'label': label, 'input': input}
+            # Updated at Apr 5 2020
+            for key, value in data.items():
+                data[key] = np.flip(value, axis=1)
+
+        # data = {'label': label, 'input': input}
 
         return data
 
@@ -116,9 +151,10 @@ class RandomCrop(object):
       self.shape = shape
 
   def __call__(self, data):
-    input, label = data['input'], data['label']
+    # input, label = data['input'], data['label']
+    # h, w = input.shape[:2]
 
-    h, w = input.shape[:2]
+    h, w = data['label'].shape[:2]
     new_h, new_w = self.shape
 
     top = np.random.randint(0, h - new_h)
@@ -127,7 +163,12 @@ class RandomCrop(object):
     id_y = np.arange(top, top + new_h, 1)[:, np.newaxis]
     id_x = np.arange(left, left + new_w, 1)
 
-    input = input[id_y, id_x]
-    label = label[id_y, id_x]
+    # input = input[id_y, id_x]
+    # label = label[id_y, id_x]
+    # data = {'label': label, 'input': input}
 
-    return {'input': input, 'label': label}
+    # Updated at Apr 5 2020
+    for key, value in data.items():
+        data[key] = value[id_y, id_x]
+
+    return data

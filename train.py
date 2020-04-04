@@ -148,14 +148,14 @@ if not os.path.exists(result_dir):
 
 ## 네트워크 학습하기
 if mode == 'train':
-    transform_train = transforms.Compose([RandomCrop(shape=(ny, nx)), Normalization(mean=0.5, std=0.5), RandomFlip(), ToTensor()])
-    transform_val = transforms.Compose([RandomCrop(shape=(ny, nx)), Normalization(mean=0.5, std=0.5), RandomFlip(), ToTensor()])
+    transform_train = transforms.Compose([RandomCrop(shape=(ny, nx)), Normalization(mean=0.5, std=0.5), RandomFlip()])
+    transform_val = transforms.Compose([RandomCrop(shape=(ny, nx)), Normalization(mean=0.5, std=0.5)])
 
     dataset_train = Dataset(data_dir=os.path.join(data_dir, 'train'), transform=transform_train, task=task, opts=opts)
-    loader_train = DataLoader(dataset_train, batch_size=batch_size, shuffle=True, num_workers=8)
+    loader_train = DataLoader(dataset_train, batch_size=batch_size, shuffle=True, num_workers=0)
 
     dataset_val = Dataset(data_dir=os.path.join(data_dir, 'val'), transform=transform_val, task=task, opts=opts)
-    loader_val = DataLoader(dataset_val, batch_size=batch_size, shuffle=False, num_workers=8)
+    loader_val = DataLoader(dataset_val, batch_size=batch_size, shuffle=True, num_workers=0)
 
     # 그밖에 부수적인 variables 설정하기
     num_data_train = len(dataset_train)
@@ -164,10 +164,10 @@ if mode == 'train':
     num_batch_train = np.ceil(num_data_train / batch_size)
     num_batch_val = np.ceil(num_data_val / batch_size)
 else:
-    transform_test = transforms.Compose([RandomCrop(shape=(ny, nx)), Normalization(mean=0.5, std=0.5), ToTensor()])
+    transform_test = transforms.Compose([RandomCrop(shape=(ny, nx)), Normalization(mean=0.5, std=0.5)])
 
     dataset_test = Dataset(data_dir=os.path.join(data_dir, 'test'), transform=transform_test, task=task, opts=opts)
-    loader_test = DataLoader(dataset_test, batch_size=batch_size, shuffle=False, num_workers=8)
+    loader_test = DataLoader(dataset_test, batch_size=batch_size, shuffle=False, num_workers=0)
 
     # 그밖에 부수적인 variables 설정하기
     num_data_test = len(dataset_test)
